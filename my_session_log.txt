@@ -1,0 +1,519 @@
+Script started on 2026-09-22 11:52:12+00:00 [TERM="xterm-256color" TTY="/dev/pts/0" COLUMNS="131" LINES="30"]
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ [7mkubectl get serviceaccount aws-load-balancer-controller -n kube-system -o yaml[27m[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Ckubectl get serviceaccount aws-load-balancer-controller -n kube-system -o yaml
+[?2004lapiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::218014315198:role/eksctl-streaming-app-cluster-addon-iamservice-Role1-cnIiUU98g64c
+  creationTimestamp: "2026-09-22T11:48:41Z"
+  labels:
+    app.kubernetes.io/managed-by: eksctl
+  name: aws-load-balancer-controller
+  namespace: kube-system
+  resourceVersion: "84284"
+  uid: 34a9f267-ed4f-4610-9882-d78b1f23f2e6
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ [7mhelm repo add eks https://aws.github.io/eks-charts[27m[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Chelm repo add eks https://aws.github.io/eks-charts
+[?2004l"eks" has been added to your repositories
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ [7mhelm repo update eks[27mhelm repo update eks
+[?2004lHang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "eks" chart repository
+Update Complete. ⎈Happy Helming!⎈
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ [7mhelm install aws-load-balancer-controller \[27m
+[7m  eks/aws-load-balancer-controller \[27m
+[7m  -n kube-system \[27m
+[7m  --set clusterName=streaming-app-cluster \[27m
+[7m  --set serviceAccount.create=false \[27m
+[7m  --set serviceAccount.name=aws-load-balancer-controller \[27m
+[7m  --version 1.14.0[27m[A[A[A[A[A[A]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ helm install aws-load-balancer-controller \
+  eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=streaming-app-cluster \
+  --set serviceAccount.create=false \
+  --set serviceAccount.name=aws-load-balancer-controller \
+  --version 1.14.0
+[?2004lNAME: aws-load-balancer-controller
+LAST DEPLOYED: Tue Sep 22 11:56:16 2026
+NAMESPACE: [36mkube-system[0m
+STATUS: [32mdeployed[0m
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+NOTES:
+AWS Load Balancer controller installed!
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ [7mkubectl get pods -n kube-system | grep aws-load-balancer-controller[27m[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Ckubectl get pods -n kube-system | grep aws-load-balancer-controller
+[?2004l[01;31m[Kaws-load-balancer-controller[m[K-bfc768b46-b8zbs   1/1     Running   0          27s
+[01;31m[Kaws-load-balancer-controller[m[K-bfc768b46-mlqwf   1/1     Running   0          27s
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ [7mkubectl get ingressclass[27mkubectl get ingressclass
+[?2004lNAME   CONTROLLER            PARAMETERS   AGE
+alb    ingress.k8s.aws/alb   <none>       50s
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ cd streamingapp/
+[?2004l[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ pwd
+[?2004l/home/seema/StreamingApp/streamingapp
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mcat templates/ingress.yaml[27mcat templates/ingress.yaml
+[?2004l{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: streamingapp-ingress
+  namespace: {{ .Values.namespace }}
+
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+
+  rules:
+    - host: {{ .Values.ingress.host }}
+
+      http:
+        paths:
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-svc
+                port:
+                  number: {{ .Values.services.auth.port }}
+
+          - path: /api/streaming
+            pathType: Prefix
+            backend:
+              service:
+                name: streaming-svc
+                port:
+                  number: {{ .Values.services.streaming.port }}
+
+          - path: /api/admin
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-svc
+                port:
+                  number: {{ .Values.services.admin.port }}
+
+          - path: /api/chat
+            pathType: Prefix
+            backend:
+              service:
+                name: chat-svc
+                port:
+                  number: {{ .Values.services.chat.port }}
+
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-svc
+                port:
+                  number: {{ .Values.services.frontend.port }}
+{{- end }}[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mgrep -A4 "/api/auth" templates/ingress.yaml[27mgrep -A4 "/api/auth" templates/ingress.yaml
+[?2004l          - path: [01;31m[K/api/auth[m[K
+            pathType: Prefix
+            backend:
+              service:
+                name: auth
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm lint .[27mhelm lint .
+[?2004l==> Linting .
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ cd ..
+[?2004l[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ ls
+[?2004l[0m[01;32mLICENSE[0m    [01;34mbackend[0m             existing-mongo.yaml  iam_policy.json  live-mongo.yaml     rendered.yaml
+[01;32mREADME.md[0m  [01;32mdocker-compose.yml[0m  [01;34mfrontend[0m             [01;34mk8s[0m              my_session_log.txt  [01;34mstreamingapp[0m
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ ca[K[Kless 2~[K[K[7mmy_session_log.txt[27mmy_session_log.txt
+[?2004l"my_session_log.txt" may be a binary file.  See it anyway? 
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ cat [7mmy_session_log.txt[27mmy_session_log.txt
+[?2004lScript started on 2026-09-22 11:52:12+00:00 [TERM="xterm-256color" TTY="/dev/pts/0" COLUMNS="131" LINES="30"]
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ [7mkubectl get serviceaccount aws-load-balancer-controller -n kube-system -o yaml[27m[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Ckubectl get serviceaccount aws-load-balancer-controller -n kube-system -o yaml
+[?2004lapiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::218014315198:role/eksctl-streaming-app-cluster-addon-iamservice-Role1-cnIiUU98g64c
+  creationTimestamp: "2026-09-22T11:48:41Z"
+  labels:
+    app.kubernetes.io/managed-by: eksctl
+  name: aws-load-balancer-controller
+  namespace: kube-system
+  resourceVersion: "84284"
+  uid: 34a9f267-ed4f-4610-9882-d78b1f23f2e6
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ [7mhelm repo add eks https://aws.github.io/eks-charts[27m[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Chelm repo add eks https://aws.github.io/eks-charts
+[?2004l"eks" has been added to your repositories
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ [7mhelm repo update eks[27mhelm repo update eks
+[?2004lHang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "eks" chart repository
+Update Complete. ⎈Happy Helming!⎈
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ [7mhelm install aws-load-balancer-controller \[27m
+[7m  eks/aws-load-balancer-controller \[27m
+[7m  -n kube-system \[27m
+[7m  --set clusterName=streaming-app-cluster \[27m
+[7m  --set serviceAccount.create=false \[27m
+[7m  --set serviceAccount.name=aws-load-balancer-controller \[27m
+[7m  --version 1.14.0[27m[A[A[A[A[A[A]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ helm install aws-load-balancer-controller \
+  eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=streaming-app-cluster \
+  --set serviceAccount.create=false \
+  --set serviceAccount.name=aws-load-balancer-controller \
+  --version 1.14.0
+[?2004lNAME: aws-load-balancer-controller
+LAST DEPLOYED: Tue Sep 22 11:56:16 2026
+NAMESPACE: [36mkube-system[0m
+STATUS: [32mdeployed[0m
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+NOTES:
+AWS Load Balancer controller installed!
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ [7mkubectl get pods -n kube-system | grep aws-load-balancer-controller[27m[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Ckubectl get pods -n kube-system | grep aws-load-balancer-controller
+[?2004l[01;31m[Kaws-load-balancer-controller[m[K-bfc768b46-b8zbs   1/1     Running   0          27s
+[01;31m[Kaws-load-balancer-controller[m[K-bfc768b46-mlqwf   1/1     Running   0          27s
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ [7mkubectl get ingressclass[27mkubectl get ingressclass
+[?2004lNAME   CONTROLLER            PARAMETERS   AGE
+alb    ingress.k8s.aws/alb   <none>       50s
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ cd streamingapp/
+[?2004l[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ pwd
+[?2004l/home/seema/StreamingApp/streamingapp
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mcat templates/ingress.[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ 
+[?2004l[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ [7mhelm lint .[27mhelm lint .
+[?2004l==> Linting .
+Error unable to check Chart.yaml file in chart: stat Chart.yaml: no such file or directory
+
+Error: 1 chart(s) linted, 1 chart(s) failed
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp[00m$ cd streamingapp/
+[?2004l[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm lint .[27mhelm lint .
+[?2004l==> Linting .
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm template streamingapp . > rendered.yaml[27mhelm template streamingapp . > rendered.yaml
+[?2004l[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mgrep -A35 -B5 "kind: Ingress" rendered.yaml[27mgrep -A35 -B5 "kind: Ingress" rendered.yaml
+[?2004l          requests:
+            storage: 5Gi
+---
+# Source: streamingapp/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+[01;31m[Kkind: Ingress[m[K
+metadata:
+  name: streamingapp-ingress
+  namespace: streamingapp
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+    - host: streamingapp.local
+
+      http:
+        paths:
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: auth
+                port:
+                  number: 3001
+
+          - path: /api/streaming
+            pathType: Prefix
+            backend:
+              service:
+                name: streaming-svc
+                port:
+                  number: 3002
+
+          - path: /api/admin
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-svc
+                port:
+                  number: 3003
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mgrep -A5 -B2 "ingress:" values.yaml[27mgrep -A5 -B2 "ingress:" values.yaml
+[?2004l  awsSecretAccessKey: ""
+
+[01;31m[Kingress:[m[K
+  enabled: true
+  className: nginx
+  host: streamingapp.local
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mgrep -A4 "ingress:" values.yaml[27mgrep -A4 "ingress:" values.yaml
+[?2004l[01;31m[Kingress:[m[K
+  enabled: true
+  className: alb
+  host: streamingapp.local
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm template streamingapp . > rendered.yaml[27mhelm template streamingapp . > rendered.yaml
+[?2004l[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mgrep -A35 -B5 "kind: Ingress" rendered.yaml[27mgrep -A35 -B5 "kind: Ingress" rendered.yaml
+[?2004l          requests:
+            storage: 5Gi
+---
+# Source: streamingapp/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+[01;31m[Kkind: Ingress[m[K
+metadata:
+  name: streamingapp-ingress
+  namespace: streamingapp
+
+spec:
+  ingressClassName: alb
+
+  rules:
+    - host: streamingapp.local
+
+      http:
+        paths:
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: auth
+                port:
+                  number: 3001
+
+          - path: /api/streaming
+            pathType: Prefix
+            backend:
+              service:
+                name: streaming-svc
+                port:
+                  number: 3002
+
+          - path: /api/admin
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-svc
+                port:
+                  number: 3003
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mgrep -A6 "backend:" rendered.yaml | grep -E "name:|number:"[27m[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cgrep -A6 "backend:" rendered.yaml | grep -E "name:|number:"
+[?2004l                [01;31m[Kname:[m[K auth
+                  [01;31m[Knumber:[m[K 3001
+                [01;31m[Kname:[m[K streaming-svc
+                  [01;31m[Knumber:[m[K 3002
+                [01;31m[Kname:[m[K admin-svc
+                  [01;31m[Knumber:[m[K 3003
+                [01;31m[Kname:[m[K chat-svc
+                  [01;31m[Knumber:[m[K 3004
+                [01;31m[Kname:[m[K frontend-svc
+                  [01;31m[Knumber:[m[K 80
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mkubectl apply --dry-run=server -f rendered.yaml[27mkubectl apply --dry-run=server -f rendered.yaml
+[?2004lnamespace/streamingapp unchanged (server dry run)
+secret/streamingapp-secret configured (server dry run)
+configmap/streamingapp-config unchanged (server dry run)
+service/admin-svc unchanged (server dry run)
+service/auth configured (server dry run)
+service/chat-svc unchanged (server dry run)
+service/frontend-svc unchanged (server dry run)
+service/mongo unchanged (server dry run)
+service/streaming-svc unchanged (server dry run)
+deployment.apps/admin configured (server dry run)
+deployment.apps/auth configured (server dry run)
+deployment.apps/chat unchanged (server dry run)
+deployment.apps/frontend unchanged (server dry run)
+deployment.apps/streaming configured (server dry run)
+statefulset.apps/mongo configured (server dry run)
+ingress.networking.k8s.io/streamingapp-ingress created (server dry run)
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm list -n streamingapp[27mhelm list -n streamingapp
+[?2004l[1mNAME[22m	[1mNAMESPACE[22m	[1mREVISION[22m	[1mUPDATED[22m	[1mSTATUS[22m	[1mCHART[22m	[1mAPP VERSION[22m
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mkubectl get deployment frontend -n streamingapp -o jsonpath='{.metadata.annotations[27m[7m.[27m[7mmeta\.helm\.sh/release-name}{"\n"}'[27m[A]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ kubectl get deployment frontend -n streamingapp -o jsonpath='{.metadata.annotations.meta\.helm\.sh/release-name}{"\n"}'
+[?2004l
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mkubectl get pods -n streamingapp[27mkubectl get pods -n streamingapp
+[?2004lNAME                         READY   STATUS    RESTARTS      AGE
+admin-5675959994-9lcpj       1/1     Running   1 (29m ago)   31m
+auth-95c5c7446-4kt72         1/1     Running   1 (29m ago)   31m
+chat-94b9d499b-fm29j         1/1     Running   1 (29m ago)   31m
+frontend-776d7bc487-hk52q    1/1     Running   0             31m
+mongo-0                      1/1     Running   0             31m
+streaming-5f6cc5ffbf-s5hhr   1/1     Running   1 (29m ago)   31m
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm template streamingapp . | grep -E '^kind:|^  name:' [27m[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Chelm template streamingapp . | grep -E '^kind:|^  name:' 
+[?2004l[01;31m[Kkind:[m[K Namespace
+[01;31m[K  name:[m[K streamingapp
+[01;31m[Kkind:[m[K Secret
+[01;31m[K  name:[m[K streamingapp-secret
+[01;31m[Kkind:[m[K ConfigMap
+[01;31m[K  name:[m[K streamingapp-config
+[01;31m[Kkind:[m[K Service
+[01;31m[K  name:[m[K admin-svc
+[01;31m[Kkind:[m[K Service
+[01;31m[K  name:[m[K auth
+[01;31m[Kkind:[m[K Service
+[01;31m[K  name:[m[K chat-svc
+[01;31m[Kkind:[m[K Service
+[01;31m[K  name:[m[K frontend-svc
+[01;31m[Kkind:[m[K Service
+[01;31m[K  name:[m[K mongo
+[01;31m[Kkind:[m[K Service
+[01;31m[K  name:[m[K streaming-svc
+[01;31m[Kkind:[m[K Deployment
+[01;31m[K  name:[m[K admin
+[01;31m[Kkind:[m[K Deployment
+[01;31m[K  name:[m[K auth
+[01;31m[Kkind:[m[K Deployment
+[01;31m[K  name:[m[K chat
+[01;31m[Kkind:[m[K Deployment
+[01;31m[K  name:[m[K frontend
+[01;31m[Kkind:[m[K Deployment
+[01;31m[K  name:[m[K streaming
+[01;31m[Kkind:[m[K StatefulSet
+[01;31m[K  name:[m[K mongo
+[01;31m[Kkind:[m[K Ingress
+[01;31m[K  name:[m[K streamingapp-ingress
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm version[27mhelm version
+[?2004lversion.BuildInfo{Version:"v4.3.0", GitCommit:"bec5b06ed841fe5269972d864d5177944fd5970f", GitTreeState:"clean", GoVersion:"go1.27.1", KubeClientVersion:"v1.37"}
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm install streamingapp . \[27m
+[7m  --namespace streamingapp \[27m
+[7m  --take-ownership[27m[A[A]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ helm install streamingapp . \
+  --namespace streamingapp \
+  --take-ownership
+[?2004lError: INSTALLATION FAILED: conflict occurred while applying object streamingapp/mongo apps/v1, Kind=StatefulSet: Apply failed with 1 conflict: conflict with "kubectl-client-side-apply" using apps/v1: .spec.volumeClaimTemplates
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm install streamingapp . \[27m
+[7m  --namespace streamingapp \[27m
+[7m  --take-ownership \[27m
+[7m  --force-conflicts[27m[A[A[A]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ helm install streamingapp . \
+  --namespace streamingapp \
+  --take-ownership \
+  --force-conflicts
+[?2004llevel=ERROR msg="release name check failed" error="cannot reuse a name that is still in use"
+Error: INSTALLATION FAILED: release name check failed: cannot reuse a name that is still in use
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm list -n streamingapp -a[27mhelm list -n streamingapp -a
+[?2004lError: unknown shorthand flag: 'a' in -a
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm list -n streamingapp --all[27mhelm list -n streamingapp --all
+[?2004lError: unknown flag: --all
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ helm list -n streamingapp --all[K[K[K[K[Ka
+[?2004lError: "helm list" accepts no arguments
+
+Usage:  helm list [flags]
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ helm list -n streamingapp a[K--e[Khelp
+[?2004l
+This command lists all of the releases for a specified namespace (uses current namespace context if namespace not specified).
+
+By default, it lists all releases in any status. Individual status filters like '--deployed', '--failed',
+'--pending', '--uninstalled', '--superseded', and '--uninstalling' can be used
+to show only releases in specific states. Such flags can be combined:
+'--deployed --failed'.
+
+By default, items are sorted alphabetically. Use the '-d' flag to sort by
+release date.
+
+If the --filter flag is provided, it will be treated as a filter. Filters are
+regular expressions (Perl compatible) that are applied to the list of releases.
+Only items that match the filter will be returned.
+
+    $ helm list --filter 'ara[a-z]+'
+    NAME                UPDATED                                  CHART
+    maudlin-arachnid    2020-06-18 14:17:46.125134977 +0000 UTC  alpine-0.1.0
+
+If no results are found, 'helm list' will exit 0, but with no output (or in
+the case of no '-q' flag, only headers).
+
+By default, up to 256 items may be returned. To limit this, use the '--max' flag.
+Setting '--max' to 0 will not return all results. Rather, it will return the
+server's default, which may be much higher than 256. Pairing the '--max'
+flag with the '--offset' flag allows you to page through results.
+
+Usage:
+  helm list [flags]
+
+Aliases:
+  list, ls
+
+Flags:
+  -A, --all-namespaces       list releases across all namespaces
+  -d, --date                 sort by release date
+      --deployed             show deployed releases
+      --failed               show failed releases
+  -f, --filter string        a regular expression (Perl compatible). Any releases that match the expression will be included in the results
+  -h, --help                 help for list
+  -m, --max int              maximum number of releases to fetch (default 256)
+      --no-headers           don't print headers when using the default output format
+      --offset int           next release index in the list, used to offset from start value
+  -o, --output format        prints the output in the specified format. Allowed values: table, json, yaml (default table)
+      --pending              show pending releases
+  -r, --reverse              reverse the sort order
+  -l, --selector string      Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2). Works only for secret(default) and configmap storage backends.
+  -q, --short                output short (quiet) listing format
+      --superseded           show superseded releases
+      --time-format string   format time using golang time formatter. Example: --time-format "2006-01-02 15:04:05Z0700"
+      --uninstalled          show uninstalled releases (if 'helm uninstall --keep-history' was used)
+      --uninstalling         show releases that are currently being uninstalled
+
+Global Flags:
+      --burst-limit int                 client-side default throttling limit (default 100)
+      --color string                    use colored output (never, auto, always) (default "auto")
+      --colour string                   use colored output (never, auto, always) (default "auto")
+      --content-cache string            path to the directory containing cached content (e.g. charts) (default "/home/seema/.cache/helm/content")
+      --debug                           enable verbose output
+      --kube-apiserver string           the address and the port for the Kubernetes API server
+      --kube-as-group stringArray       group to impersonate for the operation, this flag can be repeated to specify multiple groups.
+      --kube-as-user string             username to impersonate for the operation
+      --kube-ca-file string             the certificate authority file for the Kubernetes API server connection
+      --kube-context string             name of the kubeconfig context to use
+      --kube-insecure-skip-tls-verify   if true, the Kubernetes API server's certificate will not be checked for validity. This will make your HTTPS connections insecure
+      --kube-tls-server-name string     server name to use for Kubernetes API server certificate validation. If it is not provided, the hostname used to contact the server is used
+      --kube-token string               bearer token used for authentication
+      --kubeconfig string               path to the kubeconfig file
+  -n, --namespace string                namespace scope for this request
+      --qps float32                     queries per second used when communicating with the Kubernetes API, not including bursting
+      --registry-config string          path to the registry config file (default "/home/seema/.config/helm/registry/config.json")
+      --repository-cache string         path to the directory containing cached repository indexes (default "/home/seema/.cache/helm/repository")
+      --repository-config string        path to the file containing repository names and URLs (default "/home/seema/.config/helm/repositories.yaml")
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ helm list -n streamingapp --helpa[K[K-A
+[?2004l[1mNAME[22m                        	[1mNAMESPACE[22m   	[1mREVISION[22m	[1mUPDATED[22m                                	[1mSTATUS[22m  	[1mCHART[22m                              	[1mAPP VERSION[22m
+aws-load-balancer-controller	[36mkube-system[0m 	1       	2026-09-22 11:56:16.081023804 +0000 UTC	[32mdeployed[0m	aws-load-balancer-controller-1.14.0	v2.14.0    
+streamingapp                	[36mstreamingapp[0m	1       	2026-09-22 12:21:04.680050282 +0000 UTC	[31mfailed[0m  	streamingapp-1.0.0                 	1.0.0      
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm uninstall streamingapp -n streamingapp[27mhelm uninstall streamingapp -n streamingapp
+[?2004llevel=WARN msg="skipping delete of resource not owned by this release" kind=StatefulSet name=mongo namespace=streamingapp release=streamingapp
+1 resource(s) were not deleted because they are not owned by this release:
+[StatefulSet] mongo
+
+release "streamingapp" uninstalled
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mkubectl get pvc -n streamingapp[27mkubectl get pvc -n streamingapp
+[?2004lNo resources found in streamingapp namespace.
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mkubectl get pv[27mkubectl get pv
+[?2004lNo resources found
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7maws ec2 describe-volumes \[27m
+[7m  --region ap-south-1 \[27m
+[7m  --filters "Name=tag:kubernetes.io/created-for/pvc/name,Values=mongo-data-mongo-0" \[27m
+[7m  --query "Volumes[*].[VolumeId,State,Size,AvailabilityZone]" \[27m
+[7m  --output table[27m[A[A[A[A]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ aws ec2 describe-volumes \
+  --region ap-south-1 \
+  --filters "Name=tag:kubernetes.io/created-for/pvc/name,Values=mongo-data-mongo-0" \
+  --query "Volumes[*].[VolumeId,State,Size,AvailabilityZone]" \
+  --output table
+[?2004l[0m[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mkubectl get namespace streamingapp[27mkubectl get namespace streamingapp
+[?2004lError from server (NotFound): namespaces "streamingapp" not found
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm install streamingapp . \[27m
+[7m  --namespace streamingapp \[27m
+[7m  --create-namespace[27m[A[A]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ helm install streamingapp . \
+  --namespace streamingapp \
+  --create-namespace
+[?2004lNAME: streamingapp
+LAST DEPLOYED: Tue Sep 22 12:27:46 2026
+NAMESPACE: [36mstreamingapp[0m
+STATUS: [32mdeployed[0m
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mhelm list -n streamingapp[27mhelm list -n streamingapp
+[?2004l[1mNAME[22m        	[1mNAMESPACE[22m   	[1mREVISION[22m	[1mUPDATED[22m                               	[1mSTATUS[22m  	[1mCHART[22m             	[1mAPP VERSION[22m
+streamingapp	[36mstreamingapp[0m	1       	2026-09-22 12:27:46.37069469 +0000 UTC	[32mdeployed[0m	streamingapp-1.0.0	1.0.0      
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mkubectl get deployments -n streamingapp[27mkubectl get deployments -n streamingapp
+[?2004lNAME        READY   UP-TO-DATE   AVAILABLE   AGE
+admin       1/1     1            1           2m57s
+auth        1/1     1            1           2m57s
+chat        1/1     1            1           2m57s
+frontend    1/1     1            1           2m57s
+streaming   1/1     1            1           2m57s
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mkubectl scale deployment streaming -n streamingapp --replicas=3[27m[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Ckubectl scale deployment streaming -n streamingapp --replicas=3
+[?2004ldeployment.apps/streaming scaled
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mkubectl get deployment streaming -n streamingapp[27mkubectl get deployment streaming -n streamingapp
+[?2004lNAME        READY   UP-TO-DATE   AVAILABLE   AGE
+streaming   1/3     3            1           4m46s
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ kubectl get deployment streaming -n streamingapp
+[?2004lNAME        READY   UP-TO-DATE   AVAILABLE   AGE
+streaming   3/3     3            3           4m55s
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [K]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [K]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [K]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [K]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [K]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [K]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [K]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [K]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [K]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [7mkubectl get pods -n streamingapp -l app=streaming[27mkubectl get pods -n streamingapp -l app=streaming
+[?2004lNAME                         READY   STATUS    RESTARTS       AGE
+streaming-6b7b596fd8-j7k99   1/1     Running   1 (8m1s ago)   8m34s
+streaming-6b7b596fd8-tngls   1/1     Running   0              3m57s
+streaming-6b7b596fd8-txtbk   1/1     Running   0              3m57s
+[?2004h]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [K]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [K]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ [K]0;seema@Seema-Kanwar: ~/StreamingApp/streamingapp[01;32mseema@Seema-Kanwar[00m:[01;34m~/StreamingApp/streamingapp[00m$ 
+Script done on 2026-09-22 12:37:48+00:00 [COMMAND_EXIT_CODE="0"]
